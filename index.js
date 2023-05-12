@@ -30,6 +30,8 @@ async function run() {
         const itemsCollection = client.db("Manufacturer-website").collection("Items");
         const bookingCollection = client.db("Manufacturer-website").collection("booking");
         const profileCollection = client.db("Manufacturer-website").collection("profile");
+        const reviewCollection = client.db("Manufacturer-website").collection("review");
+        const userCollection = client.db("Manufacturer-website").collection("users");
 
         app.get('/items', async (req, res) => {
             const query = {};
@@ -54,19 +56,28 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/myBooking/:email', async (req, res) => {
+            const email = req?.params?.email;
+            const query = { email: email };
+            const cursor = bookingCollection.find(query);
+            const result = await cursor.toArray();
+            console.log(result);
+            res.send(result);
+        })
+
         app.post('/myProfile', async (req, res) => {
             const doc = req?.body;
             const email = doc?.email;
             // console.log(doc);
             const query = { email: email }
             const result = await profileCollection.findOne(query);
-            const userEmail = result.email;
+            const userEmail = result?.email;
             if (userEmail !== email) {
                 const insertProfile = await profileCollection.insertOne(doc);
                 res.send(insertProfile);
             }
-            else{
-                res.send({error:'unauthorized'});
+            else {
+                res.send({ error: 'unauthorized' });
             }
         })
 
@@ -92,11 +103,49 @@ async function run() {
         })
 
         app.get('/myProfile/:email', async (req, res) => {
-            const email = req.params.email;
+            const email = req?.params?.email;
             const query = { email: email };
             const cursor = await profileCollection.findOne(query);
             res.send(cursor);
         })
+
+        app.post('/myReview', async (req, res) => {
+            const doc = req?.body;
+            console.log(doc);
+            const insertReview = await reviewCollection.insertOne(doc);
+            res.send(insertReview);
+        })
+
+        app.get('/reviews', async (req, res) => {
+            const query = {};
+            const cursor = reviewCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        app.put('/users/:email', async (req, res) => {
+            const email = req.params.email;
+            const currentUser = req.body;
+            console.log(email);
+            console.log(currentUser);
+            if (email !== 'undefined') {
+                const filter = { email: email };
+
+                const options = { upsert: true };
+
+                const updateDoc = {
+                    $set: currentUser,
+                };
+
+                const result = await userCollection.updateOne(filter, updateDoc, options);
+
+                const token = jwt.sign({
+                    email: email
+                }, process.env.DB_SECRET_KEY, { expiresIn: '1d' });
+                res.send({ result, token });
+            }
+        })
+
     }
     finally {
         // Ensures that the client will close when you finish/error
