@@ -20,6 +20,17 @@ const client = new MongoClient(uri, {
     }
 });
 
+const verifyJwt = async (req, res, next) => {
+    const authorization = await req.headers.authorization;
+    const token = authorization.split(' ')[1];
+    // console.log(token);
+    jwt.verify(token, process.env.DB_SECRET_KEY, function async(err, decoded) {
+        console.log(decoded)
+        req.decoded = decoded;
+        next();
+    });
+}
+
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
@@ -102,11 +113,19 @@ async function run() {
             res.send(updateProfile);
         })
 
-        app.get('/myProfile/:email', async (req, res) => {
+        app.get('/myProfile/:email', verifyJwt, async (req, res) => {
+            const decoded = req.decoded;
+            const decodedEmail = decoded?.email;
+            console.log(decodedEmail);
             const email = req?.params?.email;
-            const query = { email: email };
-            const cursor = await profileCollection.findOne(query);
-            res.send(cursor);
+            if (decodedEmail === email) {
+                const query = { email: email };
+                const cursor = await profileCollection.findOne(query);
+                res.send(cursor);
+            }
+            else{
+                res.status(403).send({message:'Forbidden'});
+            }
         })
 
         app.post('/myReview', async (req, res) => {
@@ -126,8 +145,8 @@ async function run() {
         app.put('/users/:email', async (req, res) => {
             const email = req.params.email;
             const currentUser = req.body;
-            console.log(email);
-            console.log(currentUser);
+            // console.log(email);
+            // console.log(currentUser);
             if (email !== 'undefined') {
                 const filter = { email: email };
 
