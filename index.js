@@ -23,8 +23,8 @@ const client = new MongoClient(uri, {
 const verifyJwt = async (req, res, next) => {
     const authorization = await req.headers.authorization;
     const token = authorization.split(' ')[1];
-    // console.log(token);
-    jwt.verify(token, process.env.DB_SECRET_KEY, function async(err, decoded) {
+    console.log(process.env.JWT_SECRET_KEY);
+    jwt.verify(token, process.env.JWT_SECRET_KEY, function async(err, decoded) {
         console.log(decoded)
         req.decoded = decoded;
         next();
@@ -58,6 +58,16 @@ async function run() {
             };
             const cursor = await itemsCollection.findOne(query);
             res.send(cursor);
+        })
+
+        app.delete('/item/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = {
+                _id: new ObjectId(id)
+            };
+            
+            const deleteItem = itemsCollection.deleteOne(query);
+            res.send(deleteItem);
         })
 
         app.post('/booking', async (req, res) => {
@@ -123,8 +133,8 @@ async function run() {
                 const cursor = await profileCollection.findOne(query);
                 res.send(cursor);
             }
-            else{
-                res.status(403).send({message:'Forbidden'});
+            else {
+                res.status(403).send({ message: 'Forbidden' });
             }
         })
 
@@ -138,6 +148,13 @@ async function run() {
         app.get('/reviews', async (req, res) => {
             const query = {};
             const cursor = reviewCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        app.get('/users', async (req, res) => {
+            const query = {};
+            const cursor = userCollection.find(query);
             const result = await cursor.toArray();
             res.send(result);
         })
@@ -160,12 +177,43 @@ async function run() {
 
                 const token = jwt.sign({
                     email: email
-                }, process.env.DB_SECRET_KEY, { expiresIn: '1d' });
+                }, process.env.JWT_SECRET_KEY, { expiresIn: '1d' });
                 res.send({ result, token });
             }
         })
 
+        app.put('/adminUser/:email', async (req, res) => {
+            const email = req.params.email;
+            const doc = {role:'admin'};
+            const filter = { email: email };
+
+            const options = { upsert: true };
+
+            const updateDoc = {
+                $set: doc,
+            };
+
+            console.log(updateDoc);
+            const result = await userCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        })
+
+        app.delete('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            console.log(email);
+            const query = {email:email};
+            const deleteUser = userCollection.deleteOne(query);
+            res.send(deleteUser);
+        })
+
+        app.post('/addItem', async (req, res) => {
+            console.log(req.body);
+            const doc = req.body;
+            const result = await itemsCollection.insertOne(doc);
+            res.send(result);
+        })
     }
+
     finally {
         // Ensures that the client will close when you finish/error
         // await client.close();
