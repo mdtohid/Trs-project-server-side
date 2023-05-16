@@ -20,8 +20,8 @@ const client = new MongoClient(uri, {
     }
 });
 
-const verifyJwt = async (req, res, next) => {
-    const authorization = await req.headers.authorization;
+function verifyJwt(req, res, next){
+    const authorization =  req.headers.authorization;
     const token = authorization.split(' ')[1];
     console.log(process.env.JWT_SECRET_KEY);
     jwt.verify(token, process.env.JWT_SECRET_KEY, function async(err, decoded) {
