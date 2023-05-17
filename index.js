@@ -3,6 +3,7 @@ const cors = require('cors')
 require('dotenv').config()
 var jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -20,8 +21,8 @@ const client = new MongoClient(uri, {
     }
 });
 
-function verifyJwt(req, res, next){
-    const authorization =  req.headers.authorization;
+function verifyJwt(req, res, next) {
+    const authorization = req.headers.authorization;
     const token = authorization.split(' ')[1];
     console.log(process.env.JWT_SECRET_KEY);
     jwt.verify(token, process.env.JWT_SECRET_KEY, function async(err, decoded) {
@@ -43,6 +44,7 @@ async function run() {
         const profileCollection = client.db("Manufacturer-website").collection("profile");
         const reviewCollection = client.db("Manufacturer-website").collection("review");
         const userCollection = client.db("Manufacturer-website").collection("users");
+        const paymentCollection = client.db("Manufacturer-website").collection("payment");
 
         app.get('/items', async (req, res) => {
             const query = {};
@@ -65,7 +67,7 @@ async function run() {
             const query = {
                 _id: new ObjectId(id)
             };
-            
+
             const deleteItem = itemsCollection.deleteOne(query);
             res.send(deleteItem);
         })
@@ -77,9 +79,58 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/booking', async (req, res) => {
+            const query = {};
+            const cursor = bookingCollection.find(query);
+            const result = await cursor.toArray();
+            console.log(result);
+            res.send(result);
+        })
+
+        app.get('/booking/:id', async (req, res) => {
+            const id = req?.params?.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await bookingCollection.findOne(query);
+            // console.log(result);
+            res.send(result);
+        })
+
+        app.post("/create-payment-intent", async (req, res) => {
+            const booking = req.body;
+            const amount = booking.totalPrice;
+            console.log(amount)
+            // console.log(amount)
+
+            // Create a PaymentIntent with the order amount and currency
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: [
+                    "card"
+                ],
+            });
+            res.send({ clientSecret: paymentIntent.client_secret });
+        });
+
+        app.patch('/booking/:id', verifyJwt, async (req, res) => {
+            const id = req.params?.id;
+            const payment = req.body;
+            // console.log(payment, id);
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment?.transactionId
+                },
+            };
+            const paymentInsert = await paymentCollection.insertOne(payment);
+            const updatedBooking = await bookingCollection.updateOne(filter, updateDoc);
+            res.send({ updatedBooking, paymentInsert });
+        })
+
         app.get('/myBooking/:email', async (req, res) => {
             const email = req?.params?.email;
-            const query = { email: email };
+            const query = {};
             const cursor = bookingCollection.find(query);
             const result = await cursor.toArray();
             console.log(result);
@@ -184,7 +235,7 @@ async function run() {
 
         app.put('/adminUser/:email', async (req, res) => {
             const email = req.params.email;
-            const doc = {role:'admin'};
+            const doc = { role: 'admin' };
             const filter = { email: email };
 
             const options = { upsert: true };
@@ -201,7 +252,7 @@ async function run() {
         app.delete('/user/:email', async (req, res) => {
             const email = req.params.email;
             console.log(email);
-            const query = {email:email};
+            const query = { email: email };
             const deleteUser = userCollection.deleteOne(query);
             res.send(deleteUser);
         })
