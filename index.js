@@ -233,6 +233,18 @@ async function run() {
             }
         })
 
+        app.get('/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const cursor = await userCollection.findOne(query);
+            if(cursor.role==='admin'){
+                return res.send({admin:true})
+            }
+            else{
+                res.send({admin:false});
+            }
+        })
+
         app.put('/adminUser/:email', async (req, res) => {
             const email = req.params.email;
             const doc = { role: 'admin' };
