@@ -87,7 +87,7 @@ async function run() {
             res.send(result);
         })
 
-        app.get('/booking/:id', async (req, res) => {
+        app.get('/booking/:id', verifyJwt, async (req, res) => {
             const id = req?.params?.id;
             const query = { _id: new ObjectId(id) };
             const result = await bookingCollection.findOne(query);
@@ -95,7 +95,7 @@ async function run() {
             res.send(result);
         })
 
-        app.post("/create-payment-intent", async (req, res) => {
+        app.post("/create-payment-intent", verifyJwt, async (req, res) => {
             const booking = req.body;
             const amount = booking.totalPrice;
             console.log(amount)
