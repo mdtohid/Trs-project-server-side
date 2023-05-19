@@ -148,7 +148,6 @@ async function run() {
         app.post('/myProfile', async (req, res) => {
             const doc = req?.body;
             const email = doc?.email;
-            // console.log(doc);
             const query = { email: email }
             const result = await profileCollection.findOne(query);
             const userEmail = result?.email;
