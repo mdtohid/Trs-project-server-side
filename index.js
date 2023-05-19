@@ -3,7 +3,6 @@ const cors = require('cors')
 require('dotenv').config()
 var jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -20,6 +19,8 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
+
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 function verifyJwt(req, res, next) {
     const authorization = req.headers.authorization;
