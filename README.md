@@ -2,7 +2,7 @@
 
 ---
 
-# Vercel Site Link: <a href="https://https://server-12-mdtohid.vercel.app/">Click here</a>
+# Vercel Site Link: <a href="https://server-12-mdtohid.vercel.app/">Click here</a>
 
 ---
 
