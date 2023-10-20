@@ -3,6 +3,8 @@ const cors = require('cors')
 require('dotenv').config()
 var jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const nodemailer = require('nodemailer');
+const mg = require('nodemailer-mailgun-transport');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -30,6 +32,37 @@ function verifyJwt(req, res, next) {
         console.log(decoded)
         req.decoded = decoded;
         next();
+    });
+}
+
+async function sendBookingEmail(data) {
+    // This is your API key that you retrieve from www.mailgun.com/cp (free up to 10K monthly emails)
+    console.log('mail', data)
+    const auth = {
+        auth: {
+            api_key: process.env.EMAIL_SEND_KEY,
+            domain: process.env.EMAIL_SEND_DOMAIN
+        }
+    }
+
+    const transporter = nodemailer.createTransport(mg(auth));
+
+    transporter.sendMail({
+        from: data.email,
+        to: process.env.EMAIL_RECEIVER,
+        subject: `Portfolio message`,
+        // 'replyTo': 'sagormdtohid@gmail.com',
+        text: data.message,
+    },(err, info) =>{
+        if (err) {
+            console.log(`Error: ${err}`);
+            return err;
+            
+        }
+        else {
+            console.log(`Response: ${info}`);
+            return info;
+        }
     });
 }
 
@@ -282,6 +315,14 @@ async function run() {
             const doc = req.body;
             const result = await itemsCollection.insertOne(doc);
             res.send(result);
+        })
+
+        app.post('/contact', async (req, res) => {
+            const data = req.body;
+            console.log(data);
+            const result = await sendBookingEmail(data);
+            console.log(result);
+            // res.send({ result: true, });
         })
     }
 
