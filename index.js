@@ -35,29 +35,30 @@ function verifyJwt(req, res, next) {
     });
 }
 
-async function sendBookingEmail(data) {
-    // This is your API key that you retrieve from www.mailgun.com/cp (free up to 10K monthly emails)
-    console.log('mail', data)
-    const auth = {
-        auth: {
-            api_key: process.env.EMAIL_SEND_KEY,
-            domain: process.env.EMAIL_SEND_DOMAIN
-        }
+
+
+// This is your API key that you retrieve from www.mailgun.com/cp (free up to 10K monthly emails)
+const auth = {
+    auth: {
+        api_key: process.env.EMAIL_SEND_KEY,
+        domain: process.env.EMAIL_SEND_DOMAIN
     }
+}
 
-    const transporter = nodemailer.createTransport(mg(auth));
+const transporter = nodemailer.createTransport(mg(auth));
 
+async function sendBookingEmail(data) {
     transporter.sendMail({
         from: data.email,
         to: process.env.EMAIL_RECEIVER,
         subject: `Portfolio message`,
         // 'replyTo': 'sagormdtohid@gmail.com',
         text: data.message,
-    },(err, info) =>{
+
+    }, (err, info) => {
         if (err) {
             console.log(`Error: ${err}`);
             return err;
-            
         }
         else {
             console.log(`Response: ${info}`);
@@ -164,7 +165,7 @@ async function run() {
 
         app.get('/myBooking/:email', async (req, res) => {
             const email = req?.params?.email;
-            const query = {email:email};
+            const query = { email: email };
             const cursor = bookingCollection.find(query);
             const result = await cursor.toArray();
             console.log(result);
@@ -173,7 +174,7 @@ async function run() {
 
         app.delete('/myBooking/:id', async (req, res) => {
             const id = req?.params?.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await bookingCollection.deleteOne(query);
             console.log(result);
             res.send(result);
@@ -278,11 +279,11 @@ async function run() {
             const email = req.params.email;
             const query = { email: email };
             const cursor = await userCollection.findOne(query);
-            if(cursor.role==='admin'){
-                return res.send({admin:true})
+            if (cursor.role === 'admin') {
+                return res.send({ admin: true })
             }
-            else{
-                res.send({admin:false});
+            else {
+                res.send({ admin: false });
             }
         })
 
@@ -319,10 +320,9 @@ async function run() {
 
         app.post('/contact', async (req, res) => {
             const data = req.body;
-            console.log(data);
             const result = await sendBookingEmail(data);
             console.log(result);
-            // res.send({ result: true, });
+            res.send({ result: true, });
         })
     }
 
